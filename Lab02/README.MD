@@ -16,7 +16,7 @@
 python --version
 ```
 
-Если нет, его необходимо скачать с официального сайта (https://www.python.org/downloads/)[https://www.python.org/downloads/]
+Если нет, его необходимо скачать с официального сайта (https://www.python.org/downloads/)
 
 2. Установите библиотеку `requests`:
 
