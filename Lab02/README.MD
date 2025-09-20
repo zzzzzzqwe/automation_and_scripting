@@ -124,6 +124,12 @@ def save_json(from_cur: str, to_cur: str, date_str: str, payload: dict):
 
 6. **Логирование ошибок**
    Все ошибки записываются в `error.log` и выводятся в консоль, чтобы было понятно, что пошло не так.
+```
+2025-09-20 18:55:30,275 ERROR Не удалось получить курс для USD->EUR на 2025-09-01: API error: Invalid API key
+2025-09-20 18:55:47,713 ERROR API вернул ошибку: Invalid API key
+2025-09-20 19:02:22,274 ERROR Ошибка при получении данных: API вернул ошибку: Invalid API key
+2025-09-20 19:02:40,077 ERROR Ошибка при получении данных: API вернул ошибку: The currency  is unknown
+```
 
 ---
 
