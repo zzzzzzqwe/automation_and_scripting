@@ -29,6 +29,7 @@ def ensure_data_dir():
     if not DATA_DIR.exists():
         DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+# Проверка даты
 def validate_date(d: str) -> bool:
     try:
         datetime.fromisoformat(d)
@@ -36,6 +37,7 @@ def validate_date(d: str) -> bool:
     except Exception:
         return False
 
+# Сохраняем в JSON
 def save_json(from_cur: str, to_cur: str, date_str: str, payload: dict):
     fname = f"{from_cur}_{to_cur}_{date_str}.json"
     path = DATA_DIR / fname
@@ -43,6 +45,7 @@ def save_json(from_cur: str, to_cur: str, date_str: str, payload: dict):
         json.dump(payload, f, ensure_ascii=False, indent=2)
     return path
 
+# Функция для вызова API
 def call_api(api_url: str, from_cur: str, to_cur: str, date_str: str, key: str) -> dict:
     if requests is None:
         raise RuntimeError("Требуется библиотека 'requests'. Установите: pip install requests")
@@ -59,6 +62,7 @@ def call_api(api_url: str, from_cur: str, to_cur: str, date_str: str, key: str) 
         raise RuntimeError(f"API вернул ошибку: {j.get('error')}")
     return j
 
+# Функция для парсинга аргументов из строки
 def parse_args():
     p = argparse.ArgumentParser(description="Получить курс валюты и сохранить JSON")
     p.add_argument("--from", dest="from_cur", required=True, help="Валюта-источник, например USD")
