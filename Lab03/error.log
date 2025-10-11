@@ -1,0 +1,9 @@
+2025-09-20 18:55:13,525 INFO Создана директория: D:\Downloads\lab02\data
+2025-09-20 18:55:13,525 ERROR Не удалось получить курс для USD->EUR на 2025-09-01: Библиотека requests не установлена. Установите её: pip install requests
+2025-09-20 18:55:30,275 ERROR API вернул ошибку: Invalid API key
+2025-09-20 18:55:30,275 ERROR Не удалось получить курс для USD->EUR на 2025-09-01: API error: Invalid API key
+2025-09-20 18:55:47,713 ERROR API вернул ошибку: Invalid API key
+2025-09-20 19:02:22,274 ERROR Ошибка при получении данных: API вернул ошибку: Invalid API key
+2025-09-20 19:02:40,077 ERROR Ошибка при получении данных: API вернул ошибку: The currency  is unknown
+2025-09-20 19:03:23,680 ERROR Ошибка при получении данных: API вернул ошибку: The currency  is unknown
+2025-09-20 19:20:46,119 ERROR Ошибка при получении данных: API вернул ошибку: The currency  is unknown
