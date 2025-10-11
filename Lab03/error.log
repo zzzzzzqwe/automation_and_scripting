@@ -7,3 +7,8 @@
 2025-09-20 19:02:40,077 ERROR Ошибка при получении данных: API вернул ошибку: The currency  is unknown
 2025-09-20 19:03:23,680 ERROR Ошибка при получении данных: API вернул ошибку: The currency  is unknown
 2025-09-20 19:20:46,119 ERROR Ошибка при получении данных: API вернул ошибку: The currency  is unknown
+2025-10-11 12:23:30,676 ERROR Ошибка при получении данных: Требуется библиотека 'requests'. Установите: pip install requests
+2025-10-11 12:23:51,570 ERROR Ошибка при получении данных: Требуется библиотека 'requests'. Установите: pip install requests
+2025-10-11 12:26:25,811 ERROR Ошибка при получении данных: Требуется библиотека 'requests'. Установите: pip install requests
+2025-10-11 12:27:54,189 ERROR Ошибка при получении данных: Требуется библиотека 'requests'. Установите: pip install requests
+2025-10-11 12:33:23,721 ERROR Ошибка при получении данных: Сетевая ошибка при обращении к http://localhost:8080/: HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /?from=USD&to=EUR&date=2025-09-01 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000205C48B9100>: Failed to establish a new connection: [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение'))
