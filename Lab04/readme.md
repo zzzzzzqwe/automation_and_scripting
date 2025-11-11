@@ -150,3 +150,5 @@ pipeline {
 3. Создаю pipeline:
 
 ![image](screenshots/Screenshot_9.png)
+
+![image](screenshots/Screenshot_10.png)
