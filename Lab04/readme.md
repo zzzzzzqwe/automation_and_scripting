@@ -106,3 +106,47 @@ RUN apt-get update && apt-get install -y php-cli
 
 ## Создание конвейера Jenkins для автоматизации задач DevOps
 
+1. Копирую сайт из 8 лабораторной работы по контейнеризации в репозиторий.
+
+2. Добавляю строку с запуском файла с тестами в `Jenkinsfile`:
+```
+pipeline {
+    agent {
+        label 'php-agent'
+    }
+    
+    stages {        
+        stage('Install Dependencies') {
+            steps {
+                // Подготовка проекта (установка зависимостей, если необходимо)
+                echo 'Подготовка проекта...'
+                // Добавьте здесь команды специфичные для вашего проекта
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                // Запуск тестов
+                echo 'Запуск тестов...'
+                sh 'php web/tests/tests.php'
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Конвейер завершен.'
+        }
+        success {
+            echo 'Все этапы прошли успешно!'
+        }
+        failure {
+            echo 'Обнаружены ошибки в конвейере.'
+        }
+    }
+}
+```
+
+3. Создаю pipeline:
+
+![image](screenshots/Screenshot_9.png)
