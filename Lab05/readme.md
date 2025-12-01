@@ -395,7 +395,107 @@ pipeline {
 
 ![alt text](image-2.png)
 
+## 7. Конвейер для настройки тестового сервера с помощью Ansible
 
+Создаю следующий файл:
+```groovy
+pipeline {
+    agent { label 'ansible-agent' }
+
+    environment {
+        GIT_REPO_URL = "https://github.com/zzzzzzqwe/automation_and_scripting.git"
+        GIT_BRANCH   = "main"
+        PLAYBOOK_PATH = "Lab05/ansible/setup_test_server.yml"
+        INVENTORY_PATH = "/ansible/inventory/hosts"
+    }
+
+    stages {
+        stage('Checkout playbook') {
+            steps {
+                echo "Клонирую репозиторий с Ansible playbook"
+                git branch: env.GIT_BRANCH, url: env.GIT_REPO_URL
+
+                echo "Содержимое каталога:"
+                sh "pwd && ls -la"
+            }
+        }
+
+        stage('Run Ansible playbook') {
+            steps {
+                echo "Запускаю Ansible playbook ${env.PLAYBOOK_PATH}"
+                sh """
+                    ansible-playbook ${env.PLAYBOOK_PATH} -i ${env.INVENTORY_PATH}
+                """
+            }
+        }
+    }
+
+    post {
+        success { echo "Настройка тестового сервера успешно выполнена" }
+        failure { echo "Ошибка при настройке тестового сервера" }
+    }
+}
+```
+
+Создаю Pipeline через Jenkins GUI и добиваюсь успешного выполнения:
+
+![alt text](image-3.png)
+
+## 8. Конвейер для размещения PHP проекта на тестовом сервере
+Создаю следующий файл:
+```groovy
+pipeline {
+    agent { label 'ansible-agent' }
+
+    environment {
+        GIT_REPO_URL = "https://github.com/zzzzzzqwe/automation_and_scripting.git"
+        GIT_BRANCH   = "main"
+        PROJECT_PATH = "Lab05/web"
+        INVENTORY_PATH = "/ansible/inventory/hosts"
+        PLAYBOOK_DEPLOY = "/ansible/deploy_php.yml"
+    }
+
+    stages {
+        stage('Checkout PHP project') {
+            steps {
+                echo "Клонирую репозиторий PHP проекта"
+                git branch: env.GIT_BRANCH, url: env.GIT_REPO_URL
+
+                echo "Содержимое каталога:"
+                sh "pwd && ls -la"
+            }
+        }
+
+        stage('Prepare Project Directory') {
+            steps {
+                echo "Копирую PHP проект во временную директорию"
+                sh """
+                    rm -rf /ansible/project
+                    mkdir -p /ansible/project
+                    cp -r ${env.PROJECT_PATH}/* /ansible/project/
+                """
+            }
+        }
+
+        stage('Deploy to Test Server') {
+            steps {
+                echo "Запускаю Ansible playbook для деплоя"
+                sh """
+                    ansible-playbook ${env.PLAYBOOK_DEPLOY} -i ${env.INVENTORY_PATH}
+                """
+            }
+        }
+    }
+
+    post {
+        success { echo "PHP проект успешно развернут на тестовом сервере" }
+        failure { echo "Ошибка при деплое PHP проекта" }
+    }
+}
+```
+
+Также спустя несколько фиксов пайплан выполняется успешно:
+![alt text](image-4.png)
 # Контрольные вопросы
 
 # Вывод

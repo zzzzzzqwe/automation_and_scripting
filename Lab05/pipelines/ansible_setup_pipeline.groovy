@@ -4,7 +4,7 @@ pipeline {
     environment {
         GIT_REPO_URL = "https://github.com/zzzzzzqwe/automation_and_scripting.git"
         GIT_BRANCH   = "main"
-        PLAYBOOK_PATH = "lab05/ansible/setup_test_server.yml"
+        PLAYBOOK_PATH = "Lab05/ansible/setup_test_server.yml"
         INVENTORY_PATH = "/ansible/inventory/hosts"
     }
 
