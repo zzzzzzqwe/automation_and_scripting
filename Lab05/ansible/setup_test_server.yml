@@ -1,0 +1,93 @@
+---
+- name: Настройка тестового сервера для PHP-приложения
+  hosts: test
+  become: true
+
+  vars:
+    app_root: /var/www/php_app
+    server_name: test-server.local
+
+  tasks:
+    - name: Обновить кеш пакетов APT
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Установить Apache2
+      apt:
+        name: apache2
+        state: present
+
+    - name: Включить модули Apache (rewrite, php)
+      command: a2enmod "{{ item }}"
+      with_items:
+        - rewrite
+        - php
+      notify: Restart Apache
+      ignore_errors: yes
+
+    - name: Установить PHP и необходимые расширения
+      apt:
+        name:
+          - php
+          - libapache2-mod-php
+          - php-cli
+          - php-mbstring
+          - php-xml
+          - php-mysql
+        state: present
+
+    - name: Создать директорию приложения
+      file:
+        path: "{{ app_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    - name: Простейший index.php (заглушка)
+      copy:
+        dest: "{{ app_root }}/index.php"
+        content: |
+          <?php
+          phpinfo();
+        owner: www-data
+        group: www-data
+        mode: "0644"
+
+    - name: Создать конфигурацию виртуального хоста для PHP проекта
+      copy:
+        dest: /etc/apache2/sites-available/php_app.conf
+        content: |
+          <VirtualHost *:80>
+              ServerName {{ server_name }}
+              DocumentRoot {{ app_root }}
+
+              <Directory {{ app_root }}>
+                  AllowOverride All
+                  Require all granted
+              </Directory>
+
+              ErrorLog ${APACHE_LOG_DIR}/php_app_error.log
+              CustomLog ${APACHE_LOG_DIR}/php_app_access.log combined
+          </VirtualHost>
+      notify: Restart Apache
+
+    - name: Отключить дефолтный сайт Apache
+      file:
+        path: /etc/apache2/sites-enabled/000-default.conf
+        state: absent
+      notify: Restart Apache
+
+    - name: Включить виртуальный хост php_app
+      file:
+        src: /etc/apache2/sites-available/php_app.conf
+        dest: /etc/apache2/sites-enabled/php_app.conf
+        state: link
+      notify: Restart Apache
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted

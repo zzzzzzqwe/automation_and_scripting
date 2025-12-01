@@ -1,12 +1,316 @@
-# Лабораторная работа 4
+# Лабораторная работа 5. Ansible playbook для конфигурации сервера
 # Студент: Gachayev Dmitrii, I2302
-# Дата выполнения: 11.11.2025
+# Дата выполнения: 01.12.2025
 # Цель
-
+Научиться создавать Ansible playbook для автоматизации конфигурации серверов.
 # Описание проекта
-
-
+////
 ---
+
+## 1. Установка и настройка Jenkins
+
+Создаю следующий `compose.yml`:
+```yml
+services:
+  jenkins-controller:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: jenkins-controller
+    restart: unless-stopped
+    user: root
+    ports:
+      - "8080:8080" 
+      - "50000:50000"
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  ssh-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh_agent
+    container_name: jenkins-ssh-agent
+    restart: unless-stopped
+    ports:
+      - "2222:22" 
+
+volumes:
+  jenkins_home:
+```
+
+## 2. Подготовка SSH агента
+
+Создаю такой `Dockerfile.ssh_agent`:
+
+```Dockerfile
+FROM php:8.2-cli
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    git \
+    zip unzip \
+ && rm -rf /var/lib/apt/lists/*
+
+
+RUN useradd -m -d /home/jenkins -s /bin/bash jenkins
+
+
+RUN mkdir -p /home/jenkins/.ssh && \
+    chown -R jenkins:jenkins /home/jenkins/.ssh && \
+    chmod 700 /home/jenkins/.ssh
+
+COPY jenkins_agent_key.pub /home/jenkins/.ssh/authorized_keys
+RUN chown jenkins:jenkins /home/jenkins/.ssh/authorized_keys && \
+    chmod 600 /home/jenkins/.ssh/authorized_keys
+
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    git \
+    zip unzip \
+    openjdk-21-jre \
+  && rm -rf /var/lib/apt/lists/*
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]
+```
+
+Настраиваю Agent и Node через Jenkins GUI и получаю сообщение об успехе:
+
+![alt text](screenshots/image.png)
+
+## 3. Создание агента Ansible
+
+Генерирую SSH ключи для Ansible агента:
+```bash
+ssh-keygen -t rsa -b 4096 -m PEM -f ansible_agent_key
+```
+
+Также создаю и для тестового сервера:
+```bash
+ssh-keygen -t rsa -b 4096 -m PEM -f ansible_test_key
+```
+
+Далее создаю `Dockerfile.ansible_agent`:
+```dockerfile
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-venv \
+    ssh \
+    openssh-server \
+    git \
+    vim \
+    ansible \
+    openjdk-21-jre \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -d /home/jenkins -s /bin/bash jenkins
+
+RUN mkdir -p /var/run/sshd
+
+RUN mkdir -p /home/jenkins/.ssh && \
+    chown -R jenkins:jenkins /home/jenkins/.ssh && \
+    chmod 700 /home/jenkins/.ssh
+
+COPY ansible_agent_key.pub /home/jenkins/.ssh/authorized_keys
+RUN chown jenkins:jenkins /home/jenkins/.ssh/authorized_keys && \
+    chmod 600 /home/jenkins/.ssh/authorized_keys
+
+COPY ansible_test_key /home/jenkins/.ssh/id_rsa_ansible
+RUN chown jenkins:jenkins /home/jenkins/.ssh/id_rsa_ansible && \
+    chmod 600 /home/jenkins/.ssh/id_rsa_ansible
+
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+RUN mkdir -p /ansible && chown -R jenkins:jenkins /ansible
+
+USER jenkins
+WORKDIR /ansible
+
+RUN echo '[defaults]\n' \
+         'inventory = /ansible/hosts\n' \
+         'remote_user = ansible\n' \
+         'private_key_file = /home/jenkins/.ssh/id_rsa_ansible\n' \
+         'host_key_checking = False\n' \
+         > /ansible/ansible.cfg
+
+RUN echo '[test]\n' \
+         'test-server ansible_host=test-server\n' \
+         > /ansible/hosts
+
+USER root
+
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]
+```
+
+Затем добавляю такой фрагмент в `compose.yml`:
+```dockerfile
+  ansible-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.ansible_agent
+    container_name: jenkins-ansible-agent
+    restart: unless-stopped
+    ports:
+```
+
+Далее создаю ноды и агенты под ansible, проверяю:
+
+![alt text](image.png)
+
+## 4. Создание тестового сервера
+Создаю `Dockerfile.test_server`:
+```dockerfile
+FROM ubuntu:24.04
+
+RUN apt-get update && \
+    apt-get install -y openssh-server sudo && \
+    mkdir /var/run/sshd
+
+RUN useradd -m -s /bin/bash ansible && \
+    echo "ansible ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN mkdir -p /home/ansible/.ssh && \
+    chmod 700 /home/ansible/.ssh
+
+COPY ansible_test_key.pub /home/ansible/.ssh/authorized_keys
+
+RUN chmod 600 /home/ansible/.ssh/authorized_keys && \
+    chown -R ansible:ansible /home/ansible/.ssh
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]
+
+```
+
+Добавляю `test-server` в `compose.yml`:
+```yml
+  test-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.test_server
+    container_name: test-server
+    restart: unless-stopped
+    ports:
+      - "2223:22"
+```
+
+Провожу настройку портов и контейнера, проверяю подключение между ними:
+
+![alt text](image-1.png)
+
+## 5. Создание Ansible playbook для настройки тестового сервера
+
+Создаю папку ansible, в ней файл `hosts.ini`:
+```ini
+[test]
+test-server ansible_host=test-server ansible_user=ansible
+```
+
+Также создаю `setup_test_server.yml`:
+```yml
+---
+- name: Настройка тестового сервера для PHP-приложения
+  hosts: test
+  become: true
+
+  vars:
+    app_root: /var/www/php_app
+    server_name: test-server.local
+
+  tasks:
+    - name: Обновить кеш пакетов APT
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Установить Apache2
+      apt:
+        name: apache2
+        state: present
+
+    - name: Включить модули Apache (rewrite, php)
+      command: a2enmod "{{ item }}"
+      with_items:
+        - rewrite
+        - php
+      notify: Restart Apache
+      ignore_errors: yes
+
+    - name: Установить PHP и необходимые расширения
+      apt:
+        name:
+          - php
+          - libapache2-mod-php
+          - php-cli
+          - php-mbstring
+          - php-xml
+          - php-mysql
+        state: present
+
+    - name: Создать директорию приложения
+      file:
+        path: "{{ app_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    - name: index.php (заглушка)
+      copy:
+        dest: "{{ app_root }}/index.php"
+        content: |
+          <?php
+          phpinfo();
+        owner: www-data
+        group: www-data
+        mode: "0644"
+
+    - name: Создать конфигурацию виртуального хоста для PHP
+      copy:
+        dest: /etc/apache2/sites-available/php_app.conf
+        content: |
+          <VirtualHost *:80>
+              ServerName {{ server_name }}
+              DocumentRoot {{ app_root }}
+
+              <Directory {{ app_root }}>
+                  AllowOverride All
+                  Require all granted
+              </Directory>
+
+              ErrorLog ${APACHE_LOG_DIR}/php_app_error.log
+              CustomLog ${APACHE_LOG_DIR}/php_app_access.log combined
+          </VirtualHost>
+      notify: Restart Apache
+
+    - name: Отключить дефолтный сайт Apache
+      file:
+        path: /etc/apache2/sites-enabled/000-default.conf
+        state: absent
+      notify: Restart Apache
+
+    - name: Включить виртуальный хост php_app
+      file:
+        src: /etc/apache2/sites-available/php_app.conf
+        dest: /etc/apache2/sites-enabled/php_app.conf
+        state: link
+      notify: Restart Apache
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+```
+
+## 6. Конвейер для сборки и тестирования PHP проекта
+
 
 
 # Контрольные вопросы

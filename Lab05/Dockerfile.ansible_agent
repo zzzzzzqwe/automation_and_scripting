@@ -1,0 +1,55 @@
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-venv \
+    ssh \
+    openssh-server \
+    git \
+    vim \
+    ansible \
+    openjdk-21-jre \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -d /home/jenkins -s /bin/bash jenkins
+
+RUN mkdir -p /var/run/sshd
+
+RUN mkdir -p /home/jenkins/.ssh && \
+    chown -R jenkins:jenkins /home/jenkins/.ssh && \
+    chmod 700 /home/jenkins/.ssh
+
+COPY ansible_agent_key.pub /home/jenkins/.ssh/authorized_keys
+RUN chown jenkins:jenkins /home/jenkins/.ssh/authorized_keys && \
+    chmod 600 /home/jenkins/.ssh/authorized_keys
+
+COPY ansible_test_key /home/jenkins/.ssh/id_rsa_ansible
+RUN chown jenkins:jenkins /home/jenkins/.ssh/id_rsa_ansible && \
+    chmod 600 /home/jenkins/.ssh/id_rsa_ansible
+
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+RUN mkdir -p /ansible && chown -R jenkins:jenkins /ansible
+
+COPY ansible/ /ansible/
+RUN chown -R jenkins:jenkins /ansible
+
+USER jenkins
+WORKDIR /ansible
+
+RUN echo '[defaults]\n' \
+         'inventory = /ansible/hosts\n' \
+         'remote_user = ansible\n' \
+         'private_key_file = /home/jenkins/.ssh/id_rsa_ansible\n' \
+         'host_key_checking = False\n' \
+         > /ansible/ansible.cfg
+
+RUN echo '[test]\n' \
+         'test-server ansible_host=test-server\n' \
+         > /ansible/hosts
+
+USER root
+
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]

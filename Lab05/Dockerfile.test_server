@@ -1,0 +1,20 @@
+FROM ubuntu:24.04
+
+RUN apt-get update && \
+    apt-get install -y openssh-server sudo && \
+    mkdir /var/run/sshd
+
+RUN useradd -m -s /bin/bash ansible && \
+    echo "ansible ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN mkdir -p /home/ansible/.ssh && \
+    chmod 700 /home/ansible/.ssh
+
+COPY ansible_test_key.pub /home/ansible/.ssh/authorized_keys
+
+RUN chmod 600 /home/ansible/.ssh/authorized_keys && \
+    chown -R ansible:ansible /home/ansible/.ssh
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]

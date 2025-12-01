@@ -1,0 +1,32 @@
+FROM php:8.2-cli
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    git \
+    zip unzip \
+ && rm -rf /var/lib/apt/lists/*
+
+
+RUN useradd -m -d /home/jenkins -s /bin/bash jenkins
+
+
+RUN mkdir -p /home/jenkins/.ssh && \
+    chown -R jenkins:jenkins /home/jenkins/.ssh && \
+    chmod 700 /home/jenkins/.ssh
+
+COPY jenkins_agent_key.pub /home/jenkins/.ssh/authorized_keys
+RUN chown jenkins:jenkins /home/jenkins/.ssh/authorized_keys && \
+    chmod 600 /home/jenkins/.ssh/authorized_keys
+
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    git \
+    zip unzip \
+    openjdk-21-jre \
+  && rm -rf /var/lib/apt/lists/*
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]
