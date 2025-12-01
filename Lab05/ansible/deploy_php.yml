@@ -1,0 +1,25 @@
+---
+- hosts: test
+  become: yes
+
+  tasks:
+    - name: Создать каталог /var/www/html/project
+      file:
+        path: /var/www/html/project
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Копировать PHP проект на сервер
+      copy:
+        src: "{{ playbook_dir }}/project/"
+        dest: /var/www/html/project/
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Перезапуск apache2
+      service:
+        name: apache2
+        state: restarted

@@ -34,7 +34,7 @@ pipeline {
             }
         }
 
-        stage('Run tests (PHPUnit или tests.php)') {
+        stage('Run tests') {
             steps {
                 echo "Запускаю тесты проекта"
                 dir(env.PHP_APP_PATH) {
