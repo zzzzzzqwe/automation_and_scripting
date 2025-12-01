@@ -4,6 +4,11 @@ RUN apt-get update && \
     apt-get install -y openssh-server sudo && \
     mkdir /var/run/sshd
 
+RUN apt-get update && apt-get install -y apache2 php libapache2-mod-php
+RUN mkdir -p /var/run/sshd
+EXPOSE 22 80
+
+
 RUN useradd -m -s /bin/bash ansible && \
     echo "ansible ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 

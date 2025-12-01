@@ -36,5 +36,6 @@ services:
     restart: unless-stopped
     ports:
       - "2224:22"
+      - "8081:80"
 volumes:
   jenkins_home:
