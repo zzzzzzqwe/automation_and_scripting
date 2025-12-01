@@ -19,14 +19,6 @@
         group: www-data
         mode: '0644'
 
-    - name: Копировать index.php на сервер
-      copy:
-        src: "{{ playbook_dir }}/../web/index.php"
-        dest: /var/www/html/index.php
-        owner: www-data
-        group: www-data
-        mode: '0644'
-
     - name: Перезапуск apache2
       service:
         name: apache2
