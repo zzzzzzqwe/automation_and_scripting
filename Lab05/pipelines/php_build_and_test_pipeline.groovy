@@ -1,5 +1,4 @@
 pipeline {
-    // На какой ноде запускать (твоя PHP-нода)
     agent { label 'php-agent' }
 
     environment {
@@ -19,7 +18,7 @@ pipeline {
             }
         }
 
-        stage('Install dependencies (Composer, если есть)') {
+        stage('Install dependencies') {
             steps {
                 echo "Пробую установить зависимости через Composer (если есть composer.json)"
                 dir(env.PHP_APP_PATH) {
@@ -40,21 +39,18 @@ pipeline {
                 echo "Запускаю тесты проекта"
                 dir(env.PHP_APP_PATH) {
                     sh '''
-                        # 1) Если есть vendor/bin/phpunit (через composer) — используем его
                         if [ -x "vendor/bin/phpunit" ]; then
                           echo "Запускаю vendor/bin/phpunit"
                           ./vendor/bin/phpunit --testdox
                           exit $?
                         fi
 
-                        # 2) Если установлен глобальный phpunit
                         if command -v phpunit >/dev/null 2>&1; then
                           echo "Запускаю глобальный phpunit"
                           phpunit --testdox
                           exit $?
                         fi
 
-                        # 3) Фоллбэк: запускаем твой tests.php
                         if [ -f "tests.php" ]; then
                           echo "PHPUnit не найден, запускаю tests.php"
                           php tests.php
@@ -71,10 +67,10 @@ pipeline {
 
     post {
         success {
-            echo "Сборка и тесты прошли успешно ✔"
+            echo "Сборка и тесты прошли успешно"
         }
         failure {
-            echo "Сборка или тесты завершились с ошибкой ✖ — проверь лог."
+            echo "Сборка или тесты завершились с ошибкой"
         }
     }
 }
